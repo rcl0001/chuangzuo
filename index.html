@@ -283,14 +283,27 @@
                 });
             }
             
+            // 计算 payload 大小
+            const payloadString = JSON.stringify({ content: content });
+            const payloadSizeMB = (new Blob([payloadString]).size / (1024 * 1024)).toFixed(2);
+            
+            if (payloadSizeMB > 4.0) {
+                throw new Error(`您上传的文件太大了 (${payloadSizeMB} MB)。Vercel 免费版限制单次请求不能超过 4.5MB。请压缩您的图片/视频后再试！`);
+            }
+            
             // 1. 提交任务给 Vercel 云端接口
             const response = await fetch(`${API_BASE_URL}/api/generate`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
                 },
-                body: JSON.stringify({ content: content })
+                body: payloadString
             });
+            
+            if (!response.ok) {
+                const errorText = await response.text();
+                throw new Error(`服务器返回错误 ${response.status}: ${errorText}`);
+            }
             
             const result = await response.json();
             
