@@ -2,7 +2,7 @@
   "version": 2,
   "builds": [
     {
-      "src": "vercel_proxy/api/**/*.py",
+      "src": "api/**/*.py",
       "use": "@vercel/python"
     }
   ],
@@ -18,11 +18,11 @@
     },
     {
       "src": "/api/generate",
-      "dest": "/vercel_proxy/api/generate.py"
+      "dest": "/api/generate.py"
     },
     {
       "src": "/api/status",
-      "dest": "/vercel_proxy/api/status.py"
+      "dest": "/api/status.py"
     }
   ]
 }
