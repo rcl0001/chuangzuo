@@ -5,12 +5,20 @@ import urllib.error
 from http.server import BaseHTTPRequestHandler
 
 class handler(BaseHTTPRequestHandler):
+    def do_OPTIONS(self):
+        # 处理浏览器的预检请求 (CORS)
+        self.send_response(200)
+        self.send_header('Access-Control-Allow-Origin', '*')
+        self.send_header('Access-Control-Allow-Methods', 'POST, GET, OPTIONS')
+        self.send_header('Access-Control-Allow-Headers', 'Content-Type, Authorization')
+        self.end_headers()
+
     def do_POST(self):
         # 允许跨域
         self.send_response(200)
         self.send_header('Access-Control-Allow-Origin', '*')
-        self.send_header('Access-Control-Allow-Methods', 'POST, OPTIONS')
-        self.send_header('Access-Control-Allow-Headers', 'Content-Type')
+        self.send_header('Access-Control-Allow-Methods', 'POST, GET, OPTIONS')
+        self.send_header('Access-Control-Allow-Headers', 'Content-Type, Authorization')
         self.send_header('Content-type', 'application/json')
         self.end_headers()
 
@@ -61,11 +69,3 @@ class handler(BaseHTTPRequestHandler):
             self.wfile.write(json.dumps({"error": f"API Error: {error_msg}"}).encode('utf-8'))
         except Exception as e:
             self.wfile.write(json.dumps({"error": str(e)}).encode('utf-8'))
-
-    def do_OPTIONS(self):
-        # 处理浏览器的预检请求 (CORS)
-        self.send_response(200)
-        self.send_header('Access-Control-Allow-Origin', '*')
-        self.send_header('Access-Control-Allow-Methods', 'POST, OPTIONS')
-        self.send_header('Access-Control-Allow-Headers', 'Content-Type')
-        self.end_headers()

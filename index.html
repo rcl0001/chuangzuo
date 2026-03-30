@@ -172,7 +172,7 @@
 <script>
     // === 配置区域 ===
     // 将这里的 URL 替换为您部署到 Vercel 后的域名
-    const API_BASE_URL = 'https://您的vercel域名.vercel.app';
+    const API_BASE_URL = 'https://chuangzuo123.vercel.app';
     // ===============
 
     const form = document.getElementById('generateForm');
@@ -254,7 +254,7 @@
             const imageFiles = document.getElementById('imageFiles').files;
             for (let i = 0; i < imageFiles.length; i++) {
                 const b64 = await fileToBase64(imageFiles[i]);
-                content.append({
+                content.push({
                     "type": "image_url",
                     "image_url": { "url": b64 },
                     "role": "reference_image"
