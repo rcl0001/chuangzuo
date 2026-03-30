@@ -198,9 +198,13 @@
     // 页面加载时检查是否有正在进行的任务
     window.addEventListener('DOMContentLoaded', () => {
         const savedTaskId = localStorage.getItem('current_task_id');
-        if (savedTaskId) {
+        // 确保 savedTaskId 存在且不为字符串的 'undefined'
+        if (savedTaskId && savedTaskId !== 'undefined') {
             console.log('恢复轮询任务:', savedTaskId);
             restoreTaskState(savedTaskId);
+        } else {
+            // 如果是脏数据，清理掉
+            localStorage.removeItem('current_task_id');
         }
     });
 
