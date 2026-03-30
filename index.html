@@ -1,0 +1,376 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>视频生成器</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background-color: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            text-align: center;
+            color: #333;
+        }
+        .form-group {
+            margin-bottom: 20px;
+        }
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: bold;
+            color: #555;
+        }
+        textarea, input[type="text"] {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            box-sizing: border-box;
+            font-size: 14px;
+        }
+        textarea {
+            height: 100px;
+            resize: vertical;
+        }
+        .file-input-wrapper {
+            border: 1px dashed #ccc;
+            padding: 15px;
+            border-radius: 5px;
+            background-color: #fafafa;
+        }
+        button {
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            font-size: 16px;
+            border-radius: 5px;
+            cursor: pointer;
+            width: 100%;
+            transition: background-color 0.3s;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        button:disabled {
+            background-color: #cccccc;
+            cursor: not-allowed;
+        }
+        #status {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 5px;
+            display: none;
+        }
+        .status-running {
+            background-color: #e3f2fd;
+            color: #1565c0;
+            border: 1px solid #bbdefb;
+        }
+        .status-success {
+            background-color: #e8f5e9;
+            color: #2e7d32;
+            border: 1px solid #c8e6c9;
+        }
+        .status-error {
+            background-color: #ffebee;
+            color: #c62828;
+            border: 1px solid #ffcdd2;
+        }
+        .spinner {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(255,255,255,.3);
+            border-radius: 50%;
+            border-top-color: #fff;
+            animation: spin 1s ease-in-out infinite;
+            vertical-align: middle;
+            margin-right: 10px;
+            display: none;
+        }
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        .video-container {
+            margin-top: 20px;
+            display: none;
+            text-align: center;
+        }
+        video {
+            max-width: 100%;
+            border-radius: 5px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>简单视频生成器</h1>
+    
+    <form id="generateForm">
+        <div class="form-group">
+            <label for="prompt">提示词 (Prompt):</label>
+            <textarea id="prompt" name="prompt" placeholder="请输入视频的描述..." required>全程使用视频1的第一视角构图，全程使用音频1作为背景音乐。第一人称视角果茶宣传广告，seedance牌「苹苹安安」苹果果茶限定款...</textarea>
+        </div>
+        
+        <div class="form-group">
+            <label>参考图片 (可选):</label>
+            <div class="file-input-wrapper">
+                <input type="file" id="imageFiles" name="images" accept="image/*" multiple>
+                <small style="display:block; margin-top:5px; color:#888;">可选择多张图片</small>
+            </div>
+        </div>
+        
+        <div class="form-group">
+            <label>参考视频 (可选):</label>
+            <div class="file-input-wrapper">
+                <input type="file" id="videoFile" name="video" accept="video/*">
+            </div>
+        </div>
+        
+        <div class="form-group">
+            <label>参考音频 (可选):</label>
+            <div class="file-input-wrapper">
+                <input type="file" id="audioFile" name="audio" accept="audio/*">
+            </div>
+        </div>
+        
+        <button type="submit" id="submitBtn">
+            <div class="spinner" id="spinner"></div>
+            <span id="btnText">开始生成视频</span>
+        </button>
+        <button type="button" id="resetBtn" style="background-color: #f44336; margin-top: 10px; display: none;">
+            清除当前任务，重新开始
+        </button>
+    </form>
+    
+    <div id="status"></div>
+    
+    <div class="video-container" id="videoContainer">
+        <h3>生成成功！</h3>
+        <p>视频已保存在服务器本地。</p>
+        <video id="resultVideo" controls></video>
+        <div style="margin-top: 10px;">
+            <a id="downloadLink" href="#" download class="button" style="display:inline-block; padding:8px 15px; background:#2196F3; color:white; text-decoration:none; border-radius:5px;">下载视频</a>
+        </div>
+    </div>
+</div>
+
+<script>
+    // === 配置区域 ===
+    // 将这里的 URL 替换为您部署到 Vercel 后的域名
+    const API_BASE_URL = 'https://您的vercel域名.vercel.app';
+    // ===============
+
+    const form = document.getElementById('generateForm');
+    const submitBtn = document.getElementById('submitBtn');
+    const resetBtn = document.getElementById('resetBtn');
+    const spinner = document.getElementById('spinner');
+    const btnText = document.getElementById('btnText');
+    const statusDiv = document.getElementById('status');
+    const videoContainer = document.getElementById('videoContainer');
+    const resultVideo = document.getElementById('resultVideo');
+    const downloadLink = document.getElementById('downloadLink');
+
+    // 工具函数：将文件转换为 Base64
+    function fileToBase64(file) {
+        return new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.readAsDataURL(file);
+            reader.onload = () => resolve(reader.result);
+            reader.onerror = error => reject(error);
+        });
+    }
+
+    // 页面加载时检查是否有正在进行的任务
+    window.addEventListener('DOMContentLoaded', () => {
+        const savedTaskId = localStorage.getItem('current_task_id');
+        if (savedTaskId) {
+            console.log('恢复轮询任务:', savedTaskId);
+            restoreTaskState(savedTaskId);
+        }
+    });
+
+    function restoreTaskState(taskId) {
+        submitBtn.disabled = true;
+        spinner.style.display = 'inline-block';
+        btnText.textContent = '恢复轮询中...';
+        statusDiv.style.display = 'block';
+        statusDiv.className = 'status-running';
+        statusDiv.innerHTML = `已恢复任务 (ID: ${taskId}) 的状态轮询，请稍候...`;
+        videoContainer.style.display = 'none';
+        resetBtn.style.display = 'block';
+        
+        pollStatus(taskId);
+    }
+
+    resetBtn.addEventListener('click', () => {
+        localStorage.removeItem('current_task_id');
+        submitBtn.disabled = false;
+        spinner.style.display = 'none';
+        btnText.textContent = '开始生成视频';
+        statusDiv.style.display = 'none';
+        videoContainer.style.display = 'none';
+        resetBtn.style.display = 'none';
+    });
+
+    form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        
+        // 禁用表单
+        submitBtn.disabled = true;
+        spinner.style.display = 'inline-block';
+        btnText.textContent = '正在上传文件并提交任务...';
+        statusDiv.style.display = 'block';
+        statusDiv.className = 'status-running';
+        statusDiv.innerHTML = '正在处理中，请稍候...';
+        videoContainer.style.display = 'none';
+        resetBtn.style.display = 'none';
+        
+        try {
+            // 准备构建发送给后端的 JSON 数据
+            const promptText = document.getElementById('prompt').value;
+            const content = [
+                {
+                    "type": "text",
+                    "text": promptText
+                }
+            ];
+
+            // 处理图片
+            const imageFiles = document.getElementById('imageFiles').files;
+            for (let i = 0; i < imageFiles.length; i++) {
+                const b64 = await fileToBase64(imageFiles[i]);
+                content.append({
+                    "type": "image_url",
+                    "image_url": { "url": b64 },
+                    "role": "reference_image"
+                });
+            }
+
+            // 处理视频
+            const videoFile = document.getElementById('videoFile').files[0];
+            if (videoFile) {
+                const b64 = await fileToBase64(videoFile);
+                content.push({
+                    "type": "video_url",
+                    "video_url": { "url": b64 },
+                    "role": "reference_video"
+                });
+            }
+
+            // 处理音频
+            const audioFile = document.getElementById('audioFile').files[0];
+            if (audioFile) {
+                const b64 = await fileToBase64(audioFile);
+                content.push({
+                    "type": "audio_url",
+                    "audio_url": { "url": b64 },
+                    "role": "reference_audio"
+                });
+            }
+            
+            // 1. 提交任务给 Vercel 云端接口
+            const response = await fetch(`${API_BASE_URL}/api/generate`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ content: content })
+            });
+            
+            const result = await response.json();
+            
+            if (!response.ok) {
+                throw new Error(result.error || '提交任务失败');
+            }
+            
+            const taskId = result.task_id;
+            // 保存任务 ID 到本地存储
+            localStorage.setItem('current_task_id', taskId);
+            
+            statusDiv.innerHTML = `任务已提交 (ID: ${taskId})，正在轮询生成状态，这可能需要几分钟时间...<br><small>（现在您可以放心刷新页面，进度不会丢失了）</small>`;
+            btnText.textContent = '生成中...';
+            resetBtn.style.display = 'block';
+            
+            // 2. 轮询状态
+            pollStatus(taskId);
+            
+        } catch (error) {
+            showError(`错误: ${error.message}`);
+        }
+    });
+    
+    async function pollStatus(taskId) {
+        // 如果用户点击了重置，终止轮询
+        if (localStorage.getItem('current_task_id') !== taskId) {
+            return;
+        }
+
+        try {
+            const response = await fetch(`${API_BASE_URL}/api/status?task_id=${taskId}`);
+            const result = await response.json();
+            
+            if (!response.ok) {
+                throw new Error(result.error || '查询状态失败');
+            }
+            
+            if (result.status === 'succeeded') {
+                showSuccess(result);
+                localStorage.removeItem('current_task_id'); // 成功后清除保存的任务
+            } else if (result.status === 'failed') {
+                showError('视频生成失败，请查看服务器日志。');
+                localStorage.removeItem('current_task_id'); // 失败后清除保存的任务
+            } else {
+                // 继续轮询
+                setTimeout(() => pollStatus(taskId), 5000);
+            }
+        } catch (error) {
+            showError(`查询状态错误: ${error.message}`);
+            // 出错时不一定清除任务，可能是网络波动，可以刷新重试
+        }
+    }
+    
+    function showSuccess(result) {
+        submitBtn.disabled = false;
+        spinner.style.display = 'none';
+        btnText.textContent = '重新生成新视频';
+        resetBtn.style.display = 'none';
+        
+        statusDiv.className = 'status-success';
+        statusDiv.innerHTML = `✅ 视频生成成功！`;
+        
+        const videoUrl = result.content?.video_url;
+        if (videoUrl) {
+            resultVideo.src = videoUrl;
+            downloadLink.href = videoUrl;
+            videoContainer.style.display = 'block';
+        }
+    }
+    
+    function showError(message) {
+        submitBtn.disabled = false;
+        spinner.style.display = 'none';
+        btnText.textContent = '开始生成视频';
+        resetBtn.style.display = 'none';
+        
+        statusDiv.className = 'status-error';
+        statusDiv.innerHTML = `❌ ${message}`;
+    }
+</script>
+
+</body>
+</html>

@@ -1,0 +1,9 @@
+.env
+__pycache__/
+*.pyc
+uploads/
+videos/
+dist/
+build/
+*.spec
+.DS_Store
