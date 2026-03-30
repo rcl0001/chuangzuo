@@ -2,7 +2,7 @@
   "version": 2,
   "builds": [
     {
-      "src": "api/**/*.py",
+      "src": "vercel_proxy/api/**/*.py",
       "use": "@vercel/python"
     }
   ],
@@ -12,17 +12,17 @@
       "headers": {
         "Access-Control-Allow-Origin": "*",
         "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
-        "Access-Control-Allow-Headers": "X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version"
+        "Access-Control-Allow-Headers": "X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version, Authorization"
       },
       "continue": true
     },
     {
       "src": "/api/generate",
-      "dest": "/api/generate.py"
+      "dest": "/vercel_proxy/api/generate.py"
     },
     {
       "src": "/api/status",
-      "dest": "/api/status.py"
+      "dest": "/vercel_proxy/api/status.py"
     }
   ]
 }
