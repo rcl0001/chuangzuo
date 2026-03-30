@@ -307,8 +307,12 @@
             
             const result = await response.json();
             
-            if (!response.ok) {
-                throw new Error(result.error || '提交任务失败');
+            if (result.error) {
+                throw new Error(result.error);
+            }
+            
+            if (!result.task_id) {
+                throw new Error('服务器未返回任务 ID');
             }
             
             const taskId = result.task_id;
@@ -337,8 +341,8 @@
             const response = await fetch(`${API_BASE_URL}/api/status?task_id=${taskId}`);
             const result = await response.json();
             
-            if (!response.ok) {
-                throw new Error(result.error || '查询状态失败');
+            if (result.error) {
+                throw new Error(result.error);
             }
             
             if (result.status === 'succeeded') {
